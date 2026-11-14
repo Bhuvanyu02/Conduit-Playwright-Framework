@@ -14,7 +14,7 @@ jobs:
         shard: [1/2, 2/2]
     env:
       UI_URL: http://localhost:4100
-      API_URL: http://localhost:8080/api/
+      API_URL: http://localhost:8080/
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -26,14 +26,19 @@ jobs:
 
       - name: Start app under test
         run: |
-          git clone https://github.com/Bhuvanyu02/spring-boot-realworld-example-app.git ../backend
-          git clone https://github.com/Bhuvanyu02/react-redux-realworld-example-app.git ../frontend
-          (cd ../backend && docker compose up -d)
-          (cd ../frontend && docker compose up -d)
-          npx wait-on http://localhost:8080 http://localhost:4100 --timeout 120000
+          git clone https://github.com/drakulavich/spring-boot-realworld-example-app.git ../backend
+          git -C ../backend checkout 82da7047001e7f39f4c9c28d4933bcc783f60b76
+          git clone https://github.com/drakulavich/react-redux-realworld-example-app.git ../frontend
+          git -C ../frontend checkout ee72eba4056392c95a27bc48d385d3f54ba38a18
+          docker compose up -d --build
+          npx wait-on http-get://localhost:8080/tags http-get://localhost:4100 --timeout 300000
 
       - name: Run tests
         run: npx playwright test --shard=${{ matrix.shard }}
+
+      - name: App logs on failure
+        if: failure()
+        run: docker compose logs --tail=200
 
       - uses: actions/upload-artifact@v4
         if: ${{ !cancelled() }}
