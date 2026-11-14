@@ -14,7 +14,11 @@ export default defineConfig({
   },
   projects: [
     { name: 'api', testDir: './tests/api' },
-    { name: 'setup', testMatch: /auth\.setup\.ts/ },
+    {
+      name: 'setup',
+      testMatch: /auth\.setup\.ts/,
+      use: { ...devices['Desktop Chrome'], baseURL: process.env.UI_URL },
+    },
     {
       name: 'ui',
       testDir: './tests/ui',

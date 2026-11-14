@@ -1,0 +1,43 @@
+name: tests
+on:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 2 * * *'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1/2, 2/2]
+    env:
+      UI_URL: http://localhost:4100
+      API_URL: http://localhost:8080/api/
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+
+      - name: Start app under test
+        run: |
+          git clone https://github.com/Bhuvanyu02/spring-boot-realworld-example-app.git ../backend
+          git clone https://github.com/Bhuvanyu02/react-redux-realworld-example-app.git ../frontend
+          (cd ../backend && docker compose up -d)
+          (cd ../frontend && docker compose up -d)
+          npx wait-on http://localhost:8080 http://localhost:4100 --timeout 120000
+
+      - name: Run tests
+        run: npx playwright test --shard=${{ matrix.shard }}
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report-${{ strategy.job-index }}
+          path: playwright-report/
+          retention-days: 14
